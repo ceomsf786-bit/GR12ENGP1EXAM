@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grade 12 English HL Paper 1 Quiz App</title>
+  <style>
+    :root {
+      --bg: #f4f6fb; --card: #ffffff; --text: #1f2937; --muted: #6b7280;
+      --primary: #2563eb; --primary-dark: #1d4ed8; --correct: #15803d;
+      --wrong: #b91c1c; --border: #d1d5db; --soft-blue: #e0ecff;
+      --soft-green: #dcfce7; --soft-red: #fee2e2; --gold: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    header { background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; padding: 30px 18px; text-align: center; }
+    header h1 { margin: 0 0 8px; font-size: clamp(1.7rem, 4vw, 2.6rem); }
+    header p { max-width: 900px; margin: 0 auto; color: #e0e7ff; }
+    main { width: min(1120px, 94%); margin: 24px auto 50px; }
+    .card, .top-panel, .question-card, .result-panel, .review-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08); }
+    .quiz-selector { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-bottom: 20px; }
+    .select-card { padding: 20px; cursor: pointer; transition: 0.2s ease; }
+    .select-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+    .select-card.active { border: 3px solid var(--primary); background: #eff6ff; }
+    .select-card h2 { margin: 0 0 8px; }
+    .select-card p { color: var(--muted); margin: 0 0 12px; }
+    .pill { display: inline-block; padding: 5px 10px; background: #e5e7eb; border-radius: 999px; font-size: 0.82rem; font-weight: 700; margin: 3px 3px 0 0; }
+    .top-panel { padding: 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; position: sticky; top: 0; z-index: 5; }
+    .stat { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; text-align: center; }
+    .stat strong { display: block; font-size: 1.35rem; color: var(--primary); }
+    .stat span { font-size: 0.85rem; color: var(--muted); }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    button { border: none; border-radius: 10px; padding: 11px 16px; font-weight: 700; cursor: pointer; transition: 0.2s ease; }
+    .primary-btn { background: var(--primary); color: white; } .primary-btn:hover { background: var(--primary-dark); }
+    .secondary-btn { background: white; border: 1px solid var(--border); color: var(--text); } .secondary-btn:hover { background: #f3f4f6; }
+    .danger-btn { background: #ef4444; color: white; } .danger-btn:hover { background: #dc2626; }
+    .question-card { padding: 18px; margin-bottom: 16px; }
+    .question-heading { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+    .question-number { background: var(--soft-blue); color: #1e40af; padding: 5px 10px; border-radius: 999px; font-weight: 700; white-space: nowrap; font-size: 0.9rem; }
+    .topic-tag { background: #f3f4f6; color: #374151; padding: 5px 9px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
+    .question-text { font-weight: 700; font-size: 1.03rem; margin: 10px 0 14px; white-space: pre-line; }
+    .options { display: grid; gap: 9px; }
+    label.option { border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; background: #fff; }
+    label.option:hover { background: #f9fafb; } label.option input { margin-top: 4px; }
+    .result-panel { padding: 22px; margin: 24px 0; display: none; }
+    .result-panel.show { display: block; }
+    .score-large { font-size: clamp(2rem, 6vw, 4rem); font-weight: 800; color: var(--primary); margin: 5px 0; }
+    .bar-wrap { height: 18px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin: 14px 0; }
+    .bar { height: 100%; width: 0; background: var(--primary); transition: width 0.5s ease; }
+    .review-card { padding: 14px; margin-bottom: 10px; display: none; }
+    .review-card.show { display: block; }
+    .correct-box { background: var(--soft-green); border-left: 5px solid var(--correct); }
+    .wrong-box { background: var(--soft-red); border-left: 5px solid var(--wrong); }
+    .feedback { margin-top: 8px; color: #374151; }
+    footer { text-align: center; color: var(--muted); padding: 25px; font-size: 0.9rem; }
+    @media (max-width: 850px) { .quiz-selector { grid-template-columns: 1fr; } .top-panel { grid-template-columns: repeat(2, 1fr); position: static; } }
+    @media (max-width: 520px) { .top-panel { grid-template-columns: 1fr; } .actions { flex-direction: column; } button { width: 100%; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Grade 12 English HL Paper 1 Quiz App</h1>
+    <p>Choose either quiz. Each quiz has 50 MCQs and self-marking.</p>
+  </header>
+
+  <main>
+    <section class="quiz-selector">
+      <div id="selectOriginal" class="card select-card active" onclick="switchQuiz('original')">
+        <h2>Quiz 1: Paper 1 Skills</h2>
+        <p>Higher-order questions plus Using Language Correctly based on repeated DBE patterns.</p>
+        <span class="pill">50 questions</span><span class="pill">Language</span><span class="pill">Cartoons</span><span class="pill">Adverts</span>
+      </div>
+      <div id="selectPrediction" class="card select-card" onclick="switchQuiz('prediction')">
+        <h2>Quiz 2: Paper 1 Practice</h2>
+        <p>Additional exam-style questions similar to the style and difficulty of recent Paper 1 exams.</p>
+        <span class="pill">50 questions</span><span class="pill">Practice</span><span class="pill">Grammar</span><span class="pill">HOT</span>
+      </div>
+    </section>
+
+    <section class="top-panel" aria-label="Quiz progress">
+      <div class="stat"><strong id="answeredCount">0</strong><span>Answered</span></div>
+      <div class="stat"><strong id="totalCount">50</strong><span>Total Questions</span></div>
+      <div class="stat"><strong id="livePercent">0%</strong><span>Completion</span></div>
+      <div class="stat"><strong id="bestScore">—</strong><span>Best Score</span></div>
+    </section>
+
+    <div class="actions">
+      <button class="primary-btn" onclick="submitQuiz()">Mark This Quiz</button>
+      <button class="secondary-btn" onclick="showUnanswered()">Show Unanswered</button>
+      <button class="secondary-btn" onclick="toggleReview()">Show / Hide Review</button>
+      <button class="danger-btn" onclick="resetQuiz()">Reset Current Quiz</button>
+    </div>
+
+    <section id="resultPanel" class="result-panel" aria-live="polite">
+      <h2 id="resultTitle">Your Result</h2>
+      <div class="score-large" id="scoreDisplay">0/50</div>
+      <p id="scoreMessage"></p>
+      <div class="bar-wrap"><div class="bar" id="scoreBar"></div></div>
+      <p id="topicAdvice"></p>
+    </section>
+
+    <form id="quizForm"></form>
+    <section id="reviewSection"></section>
+  </main>
+
+  <footer>Save this file as <strong>index.html</strong> and host it with GitHub Pages.</footer>
+
+  <script>
+    const originalQuiz = [
+      q('Diction and Tone','A writer uses the words “parasites”, “shallow” and “deficit” when describing modern social behaviour. What is the main effect of this diction?',['It creates a humorous and playful tone.','It suggests that the writer admires modern society.','It reveals the writer’s critical attitude towards modern social habits.','It proves that the writer is completely objective.','It softens the writer’s argument.'],2,'Negative diction such as “parasites” and “deficit” shows criticism and disapproval.'),
+      q('Rhetorical Question','Which option best explains why a writer may use a rhetorical question in an argumentative passage?',['To avoid giving an opinion.','To force the reader to memorise facts.','To replace evidence in the argument.','To engage the reader and guide them toward the writer’s viewpoint.','To confuse the reader deliberately.'],3,'A rhetorical question usually makes the reader think in the direction the writer wants.'),
+      q('Part of Speech','Identify the part of speech of “carefully” in: The driver assessed the situation carefully.',['Verb','Adjective','Adverb','Noun','Pronoun'],2,'“Carefully” describes how the action was done, so it is an adverb.'),
+      q('Complex Sentence','Which sentence is a complex sentence?',['The poster was bold and colourful.','Although the message was simple, it was highly effective.','The cartoon was funny, and the advert was persuasive.','The learner studied Paper 1 yesterday.','Read the text and answer the questions.'],1,'A complex sentence contains a main clause and a subordinate clause.'),
+      q('Punctuation','What is the function of the dashes in: The campaign – which targeted young entrepreneurs – offered funding and mentorship.',['They show possession.','They introduce direct speech.','They indicate an unfinished thought.','They enclose additional information.','They join two words to form a compound adjective.'],3,'The dashes mark parenthesis: extra information inserted into the sentence.'),
+      q('Redundancy','Which option removes the redundancy in “completely and totally exhausted”?',['Completely and fairly exhausted','Totally and fully exhausted','Completely exhausted','Very completely exhausted','Exhausted and tired'],2,'“Completely” and “totally” repeat the same idea.'),
+      q('Idiomatic Language','In “He saved money for a rainy day,” the idiom “rainy day” means:',['A wet day.','A day of celebration.','A period of difficulty or need.','A holiday.','A day when travel is impossible.'],2,'A “rainy day” means a future time of hardship or need.'),
+      q('Prefixes','Which prefix correctly forms the antonym of “legal”?',['pre-','re-','il-','mis-','over-'],2,'The antonym of “legal” is “illegal”.'),
+      q('Synonyms','Choose the best synonym for “scarce” in context: Formal employment opportunities are scarce.',['Rare','Ordinary','Frequent','Certain','Popular'],0,'“Scarce” means limited, rare or not easily available.'),
+      q('Antonyms','Choose the best antonym for “optimistic”.',['Hopeful','Positive','Pessimistic','Neutral','Confident'],2,'“Pessimistic” means expecting negative outcomes.'),
+      q('Ambiguity','The sentence “Good tips help waitrons succeed” is ambiguous because:',['“Good” can only mean moral.','“Tips” can mean money or advice.','“Waitrons” is not a real word.','“Succeed” is incorrectly used.','The sentence is passive.'],1,'“Tips” may refer to gratuities or useful advice.'),
+      q('Visual Text','A poster shows a lonely figure on a dark road with a car approaching. What atmosphere is most likely created?',['Celebration and excitement','Safety and comfort','Foreboding and unease','Humour and amusement','Luxury and confidence'],2,'A lone figure, darkness and an approaching car create danger or unease.'),
+      q('Objectivity','Which answer best explains objectivity in a comprehension response?',['The writer only uses emotional language.','The writer presents facts or balanced views without obvious personal bias.','The writer tells a personal story.','The writer attacks the opposing view.','The writer uses only short sentences.'],1,'Objectivity means fairness, balance and reliance on evidence rather than bias.'),
+      q('Objectivity','A writer quotes statistics but then repeatedly uses “perhaps” and personal experience. This suggests that the writer:',['Is definitely neutral.','Is creating an impression of objectivity but still includes speculation.','Has no argument.','Is writing fiction.','Is using only scientific proof.'],1,'Statistics can sound objective, but speculation and anecdotes reveal subjectivity.'),
+      q('Part of Speech','Which option correctly identifies “heart-warming” in “a heart-warming story”?',['Verb','Adverb','Compound adjective','Preposition','Conjunction'],2,'“Heart-warming” describes the noun “story”.'),
+      q('Passive Voice','Choose the sentence that correctly uses the passive voice.',['The advertiser promotes the campaign.','The campaign is promoted by the advertiser.','The advertiser is promoting.','Promote the campaign now.','The advertiser and the campaign promote.'],1,'In the passive voice, the subject receives the action.'),
+      q('Root Word','What is the root word of “recycling”?',['cycle','cyclist','recycle','cyclic','cycling'],0,'The base/root is “cycle”; “re-” and “-ing” are added.'),
+      q('Advertising','In advertising, “you”, “your” and “us” mainly help to:',['Create distance from the reader.','Make the message sound scientific.','Involve the reader personally.','Remove emotion from the advert.','Make the advert less persuasive.'],2,'Personal pronouns make the audience feel directly addressed.'),
+      q('Advertising Technique','An advert says, “Everyone’s doing it.” Which advertising technique is being used?',['Bandwagon','Euphemism','Understatement','Oxymoron','Litotes'],0,'Bandwagon persuasion suggests the reader should join what others are doing.'),
+      q('Cartoon Humour','Which option best explains why a final cartoon frame can create humour?',['It always repeats the first frame.','It may create an unexpected twist or anti-climax.','It removes all visual clues.','It avoids dialogue completely.','It explains the entire cartoon literally.'],1,'The final frame often delivers the punchline or reversal.'),
+      q('Punctuation','Choose the correctly punctuated sentence.',['I promise I did not forget, I was delayed.','I promise I did not forget; I was delayed.','I promise, I did not forget, I was delayed.','I promise I did not forget I was delayed.','I promise I did not forget, because, I was delayed.'],1,'A semicolon correctly separates two closely related independent clauses.'),
+      q('Indirect Speech','Correctly change to indirect speech: She said, “I am prepared for the exam.”',['She said that I am prepared for the exam.','She said that she was prepared for the exam.','She said she is prepared for the exam yesterday.','She said that she has been prepare for the exam.','She said that I was prepared for the exam.'],1,'“I” changes to “she” and “am” changes to “was”.'),
+      q('Paragraph Purpose','A single-sentence paragraph is often used to:',['Add unnecessary detail.','Hide the main idea.','Create emphasis and highlight an important point.','Replace the title.','Avoid punctuation.'],2,'A short standalone paragraph can make a key idea stand out.'),
+      q('Concord','Which sentence contains a concord error?',['One of the learners is absent.','The group of students was noisy.','The list of questions is difficult.','One in ten jobs are in tourism.','Each learner has a booklet.'],3,'The subject “one” is singular, so the verb should be “is”.'),
+      q('Concord','Which option corrects “One in ten jobs are in tourism”?',['One in ten jobs were in tourism.','One in ten jobs is in tourism.','One in ten jobs be in tourism.','One in ten jobs has in tourism.','One in ten jobs have tourism.'],1,'“One” takes the singular verb “is”.'),
+      q('Satire','Which option best explains satire in a cartoon?',['It uses criticism, humour or exaggeration to expose human weakness or social problems.','It only praises society.','It gives dictionary definitions.','It avoids humour completely.','It always uses formal language.'],0,'Satire ridicules or criticises weaknesses to make a point.'),
+      q('Satire','A cartoon character calmly discusses society’s impatience, while another shouts, “Can’t you go any faster?” What is satirised?',['Society’s patience and peacefulness','Society’s obsession with instant results','The importance of public transport','The beauty of slow living','The value of silence'],1,'The impatient demand demonstrates the very problem being discussed.'),
+      q('Irony','Which is the best explanation of irony?',['A comparison using “like” or “as”.','A mild expression replacing a harsh one.','A situation where the outcome contrasts with what is expected.','A sentence that asks for information.','A repeated consonant sound.'],2,'Irony often depends on contrast between expectation and reality.'),
+      q('Synonyms','Choose the best synonym for “abandoned” in “an abandoned chair on the street.”',['Decorated','Discarded','Protected','Purchased','Repaired'],1,'In this context, “abandoned” means left behind or discarded.'),
+      q('Punctuation','Function of the ellipsis in “Imagine tasting this ad …”?',['It shows omission of ownership.','It suggests an ongoing thought and stimulates imagination.','It introduces a quotation.','It shows a question.','It corrects a spelling error.'],1,'The ellipsis leaves the thought open and encourages imagination.'),
+      q('Punctuation','Function of the hyphen in “work-life balance”?',['It shows possession.','It joins words to form a compound modifier.','It introduces a list.','It ends a sentence.','It marks a question.'],1,'The hyphen links words that work together as one idea.'),
+      q('Advertising Layout','What is the main effect of bold font in an advertisement?',['It hides the message.','It shows that the advert is informal only.','It draws attention to important words or ideas.','It proves the advert is factual.','It removes persuasive effect.'],2,'Bold font foregrounds key parts of the message.'),
+      q('Pun','Which option best explains the pun in “LETTUCE do more for the environment”?',['It uses the vegetable name to sound like “let us”.','It compares lettuce to the environment.','It shows that lettuce is dangerous.','It uses a synonym for compost.','It avoids wordplay.'],0,'“Lettuce” sounds like “let us”.'),
+      q('Figurative and Literal Meaning','“Raising the roof” can be suitable in an advert about homeless youth because it can mean both:',['Making noise and building/providing shelter.','Destroying buildings and causing danger.','Painting houses and selling furniture.','Ignoring poverty and celebrating wealth.','Travelling and finding employment.'],0,'It can mean creating awareness and literally providing housing.'),
+      q('Visual-Verbal Link','Which option best explains a visual-verbal link?',['The image and words work together to communicate the message.','The words contradict spelling rules.','The image replaces all language.','The advert avoids persuasion.','The slogan is written in small font only.'],0,'A strong advert connects its image and wording clearly.'),
+      q('Cartoon Structure','A cartoonist prolongs a character’s speech across several frames before revealing the punchline. Why is this effective?',['It removes suspense.','It builds tension and creates a stronger comic twist.','It makes the cartoon impossible to follow.','It proves the character is silent.','It prevents irony.'],1,'A longer build-up can make the punchline more effective.'),
+      q('Apostrophe','Functions of apostrophes in “Father’s” and “it’s”?',['Omission and plural','Possession and contraction','Question and command','Conjunction and article','Prefix and suffix'],1,'“Father’s” shows possession; “it’s” is a contraction of “it is”.'),
+      q('Antonyms','Choose the best antonym for “boomed” in: Online services have boomed in popularity.',['Increased','Expanded','Declined','Improved','Flourished'],2,'“Boomed” means increased rapidly; the opposite is “declined”.'),
+      q('Standard English','Best Standard English replacement for “figure out”?',['Chill','Guess out','Determine','Hang out','Mess around'],2,'“Determine” is a formal Standard English replacement.'),
+      q('Redundancy','What is the main problem in “various different methods”?',['Ambiguity','Redundancy','Passive voice','Direct speech','Euphemism'],1,'“Various” and “different” repeat a similar idea.'),
+      q('Redundancy','Which option removes the redundancy in “various different methods”?',['Various different useful methods','Different various methods','Various methods','Methods variously different','Very different various methods'],2,'“Various methods” is clear and avoids repetition.'),
+      q('Word Form','Which word is the verb form of “patron”?',['Patronise','Patronage','Patronisingly','Patronal','Patronised'],0,'“Patronise” is the verb form.'),
+      q('Subordinate Clause','Identify the subordinate clause: It is clear that the advert targets young entrepreneurs.',['It is clear','that the advert targets young entrepreneurs','the advert targets','young entrepreneurs','is clear that'],1,'The clause beginning with “that” depends on the main clause.'),
+      q('Ambiguity','Which statement best explains ambiguity?',['A word or phrase has more than one possible meaning.','A word is spelt incorrectly.','A sentence is always too short.','A text has no punctuation.','A phrase is repeated unnecessarily.'],0,'Ambiguity happens when meaning can be interpreted in more than one way.'),
+      q('Target Audience','Why would a confident young person holding a device suit an entrepreneurship advert?',['It suggests the target audience is elderly and retired.','It represents youth, confidence, technology and business readiness.','It shows that the advert is about sport.','It removes the need for written text.','It proves the product is free.'],1,'The image matches a young, digitally skilled entrepreneurial audience.'),
+      q('Cartoon Humour','A father thinks his son bought a meaningless gift, but later discovers the son earned money to buy it. What creates humour?',['The absence of any conflict.','The father’s misunderstanding and the ironic reversal.','The lack of a final frame.','The son’s silence throughout.','The cartoon’s formal tone.'],1,'The humour lies in the father’s wrong assumption and the reversal.'),
+      q('Critical Discussion','Which option best describes a critical discussion question?',['It asks only for a one-word answer.','It requires identification only.','It requires explanation, judgement and evidence from the text.','It asks the learner to copy the title.','It requires no reference to the source.'],2,'Critical discussion needs judgement supported by textual evidence.'),
+      q('Poster Tone','Why may a poster use a threatening slogan?',['To entertain only.','To create urgency and warn the reader of possible danger.','To make the message neutral.','To reduce emotional response.','To show the topic is unimportant.'],1,'Threatening wording can create fear, urgency and caution.'),
+      q('Synonyms','Choose the best synonym for “returns” in: Travel yields major returns for the rest of your life.',['Problems','Benefits','Journeys','Tickets','Expenses'],1,'“Returns” means gains or benefits.'),
+      q('Higher-Order Thinking','Which question is the most clearly higher-order?',['Identify the part of speech of “grandly”.','Provide the root word of “recycling”.','Write out CEO in full.','Critically discuss how the cartoonist uses irony to create humour.','Give the antonym of “different”.'],3,'It requires interpretation, evidence and explanation of effect.')
+    ];
+
+    const predictionQuiz = [
+      q('Title and Theme','A passage is titled “The Price of Convenience” and argues that modern people choose speed over meaningful effort. What is the most likely purpose of the title?',['To show that convenience is always free','To suggest that convenience may have hidden social or emotional costs','To advertise a new delivery service','To prove that technology is useless','To create a humorous tone only'],1,'The title suggests convenience may cost society something deeper than money.'),
+      q('Paradox','A writer says: “We have never been more connected, yet we have never felt more alone.” What technique is mainly used?',['Euphemism','Paradox','Alliteration','Litotes','Pun'],1,'The statement appears contradictory but reveals a truth about digital connection.'),
+      q('Paradox','What is the best explanation of that paradox?',['Social media has completely ended loneliness.','Technology has no effect on relationships.','Although technology connects people digitally, it may weaken genuine human connection.','People no longer use phones.','The writer is discussing transport, not relationships.'],2,'The paradox contrasts digital connection with emotional isolation.'),
+      q('Diction and Tone','A writer uses “addicted”, “trapped” and “enslaved” to describe people’s relationship with phones. What attitude is conveyed?',['Admiring','Neutral','Critical and concerned','Humorous only','Indifferent'],2,'These words have negative connotations of dependence and loss of control.'),
+      q('Higher-Order Thinking','Which question is most likely to be higher-order?',['Provide the antonym of “simple”.','Identify the part of speech of “quickly”.','Write out “CEO” in full.','Critically discuss how the writer’s diction influences the reader’s view of technology.','Supply the root word of “recycling”.'],3,'This requires interpretation and discussion of effect.'),
+      q('Statistics','A writer includes a statistic that 78% of teenagers check their phones within ten minutes of waking up. Why might this be effective?',['It creates humour.','It provides factual support and makes the argument seem more credible.','It proves the writer is biased.','It replaces the need for a conclusion.','It weakens the argument.'],1,'Statistics can strengthen credibility.'),
+      q('Anecdote','A writer uses personal experience after presenting statistics. What is the possible risk?',['The anecdote may make the argument seem more subjective.','The argument becomes impossible to understand.','The statistics become illegal.','The tone automatically becomes formal.','The reader cannot identify the topic.'],0,'Personal experience may reveal subjectivity.'),
+      q('Rhetorical Question','Why may a writer use several rhetorical questions in one paragraph?',['To avoid discussing the topic','To make the reader reflect on the issue from the writer’s perspective','To confuse the examiner','To remove emotion from the argument','To show that no answer is possible'],1,'Rhetorical questions guide reflection.'),
+      q('Metaphor','In climate anxiety, young people are described as “carrying tomorrow’s burden today.” What is the effect?',['It suggests young people are physically carrying bags.','It uses metaphor to show emotional pressure about the future.','It makes the passage purely scientific.','It removes sympathy from the reader.','It creates a comic effect.'],1,'The metaphor shows present emotional pressure about future problems.'),
+      q('Tone','Which option best explains tone?',['The dictionary meaning of a word','The writer’s attitude toward the subject','The number of paragraphs in a text','The layout of an advert only','The spelling of a word'],1,'Tone is the writer’s attitude.'),
+      q('Conclusion','A passage ends: “The screen is not the enemy; our surrender to it is.” What does it suggest?',['All screens should be destroyed.','Technology is not necessarily harmful, but uncontrolled dependence on it is dangerous.','The writer is changing topic.','Screens are living creatures.','The writer supports total isolation.'],1,'The conclusion criticises dependence, not technology itself.'),
+      q('Part of Speech','What is the part of speech of “responsibly” in: Learners should use AI responsibly.',['Noun','Verb','Adverb','Adjective','Pronoun'],2,'“Responsibly” describes how AI should be used.'),
+      q('Part of Speech','Identify “digital” in: Digital learning has changed classrooms.',['Adjective','Adverb','Verb','Conjunction','Interjection'],0,'“Digital” describes learning.'),
+      q('Complex Sentence','Which sentence is a complex sentence?',['The advert is powerful and clear.','Learners use apps, and teachers use online platforms.','Although the image is simple, the message is powerful.','Technology changes quickly.','Read the passage carefully.'],2,'It contains a subordinate clause beginning with “Although”.'),
+      q('Punctuation','Function of dashes: Artificial intelligence – when used wisely – can support learning.',['To show possession','To indicate omitted letters','To enclose extra information','To form a question','To show direct speech'],2,'The dashes enclose extra information.'),
+      q('Redundancy','Which option removes redundancy in “future plans ahead”?',['Future plans ahead tomorrow','Plans ahead future','Future plans','Future and ahead plans','Plans future ahead'],2,'“Future” and “ahead” repeat the idea.'),
+      q('Redundancy','Which option removes redundancy in “advance warning beforehand”?',['Warning beforehand','Advance warning','Advance warning beforehand notice','Warning in advance beforehand','Advance beforehand warning'],1,'“Advance warning” is clear without “beforehand”.'),
+      q('Idioms','The idiom “to turn a blind eye” means:',['To look carefully','To ignore something deliberately','To become blind','To search for evidence','To read silently'],1,'It means to deliberately ignore something.'),
+      q('Idioms','“The principal’s decision opened a can of worms” means:',['The decision caused a complicated problem.','The principal bought food.','The decision solved everything immediately.','A science lesson began.','The principal went fishing.'],0,'A “can of worms” is a complicated problem.'),
+      q('Prefixes','Which prefix forms the antonym of “responsible”?',['dis-','re-','pre-','un-','ir-'],4,'The correct antonym is “irresponsible”.'),
+      q('Prefixes','Which prefix forms the antonym of “mature”?',['im-','pre-','re-','mis-','over-'],0,'The correct antonym is “immature”.'),
+      q('Synonyms','Best synonym for “significant”: The advert had a significant impact.',['Minor','Important','Confusing','Hidden','Ordinary'],1,'“Significant” means important or meaningful.'),
+      q('Synonyms','Choose the best synonym for “reluctant”.',['Willing','Hesitant','Excited','Certain','Proud'],1,'“Reluctant” means hesitant or unwilling.'),
+      q('Antonyms','Choose the best antonym for “authentic”.',['Genuine','Honest','False','Original','Reliable'],2,'“False” is the opposite of authentic.'),
+      q('Antonyms','Choose the best antonym for “scarce”.',['Limited','Rare','Abundant','Unusual','Minimal'],2,'“Abundant” means plentiful.'),
+      q('Ambiguity','“The teacher saw the learner with the binoculars” is ambiguous because:',['It has no verb.','It is unclear whether the teacher or the learner had the binoculars.','“Teacher” is an adjective.','“Binoculars” is misspelled.','It is in passive voice.'],1,'The phrase can attach to either person.'),
+      q('Ambiguity','Which sentence contains ambiguity?',['The learner wrote the exam yesterday.','The teacher marked the test quickly.','I saw the boy with the telescope.','The school opened at seven.','The advert used bold font.'],2,'It is unclear who had the telescope.'),
+      q('Ambiguity','Best correction for “I saw the boy with the telescope”?',['I saw the boy, and I used a telescope.','I saw the telescope boy.','I saw the boy telescope.','I saw with the boy the telescope.','I telescope saw the boy.'],0,'This removes the ambiguity by clarifying who used the telescope.'),
+      q('Passive Voice','Passive version of “The campaign encouraged young people.”',['Young people encouraged the campaign.','Young people were encouraged by the campaign.','The campaign was encouraging young people by.','Young people are encourage by the campaign.','The campaign has young people encouraged.'],1,'The object becomes the subject in the passive voice.'),
+      q('Active Voice','Active version of “The message was delivered by the speaker.”',['The speaker delivered the message.','The message delivered the speaker.','The speaker was delivered by the message.','The message is delivered.','Delivered was the speaker.'],0,'The doer, “speaker”, becomes the subject.'),
+      q('Indirect Speech','Indirect speech: The learner said, “I will revise Paper 1 tonight.”',['The learner said that I would revise Paper 1 tonight.','The learner said that she would revise Paper 1 that night.','The learner said that she will revised Paper 1 tonight.','The learner said she revise Paper 1 that night.','The learner said that Paper 1 revised her.'],1,'Pronoun and time words change in reported speech.'),
+      q('Direct Speech','Direct speech: The coach said that the team had performed well.',['The coach said, “The team performed well.”','The coach said “The team had performed well”.','The coach said, “The team has perform well.”','The coach said: the team had performed well.','The coach said, “The team will performed well.”'],0,'This is the best grammatically correct direct speech option.'),
+      q('Concord','Which sentence contains a concord error?',['Each learner has a textbook.','The group of boys is noisy.','One of the answers are incorrect.','The teachers are prepared.','The list is complete.'],2,'“One” is singular and takes “is”.'),
+      q('Concord','Correct the concord error: One of the answers are incorrect.',['One of the answers were incorrect.','One of the answers is incorrect.','One of the answer are incorrect.','One of the answers be incorrect.','One of the answers have incorrect.'],1,'“One” takes the singular verb “is”.'),
+      q('Root Word','Root word of “unbelievable”?',['belief','believable','believe','unbelieve','believing'],2,'The root is “believe”.'),
+      q('Suffixes','Which option changes “careful” into an adverb?',['care','carefully','carefulness','careless','caring'],1,'The suffix “-ly” forms the adverb.'),
+      q('Apostrophe','Function of the apostrophe in “learner’s book”?',['To show omission','To show possession','To form a plural','To introduce a list','To show contrast'],1,'It shows the book belongs to the learner.'),
+      q('Apostrophe','Function of the apostrophe in “don’t”?',['Possession','Plural','Omission/contraction','Question','Command'],2,'It shows omitted letters in “do not”.'),
+      q('Hyphen','Function of the hyphen in “well-known speaker”?',['It joins words forming a compound adjective.','It shows possession.','It introduces direct speech.','It replaces a full stop.','It shows an abbreviation.'],0,'“Well-known” works as one descriptive unit.'),
+      q('Ellipsis','Function of the ellipsis in “Maybe tomorrow …”?',['To show a completed statement','To suggest hesitation or an unfinished thought','To introduce a quotation','To correct grammar','To show possession'],1,'The ellipsis suggests hesitation or incompletion.'),
+      q('Advertising Technique','“Join the movement. Everyone is already making the change.” Which technique is used?',['Bandwagon','Simile','Litotes','Personification','Hyperbaton'],0,'It suggests people should join what others are doing.'),
+      q('Symbolism','A recycling advert shows a plastic bottle transforming into a school desk. What does it symbolise?',['Recycling can turn waste into something useful.','School desks are made of glass only.','Plastic bottles are dangerous in classrooms.','Recycling is impossible.','The advert is about transport.'],0,'The transformation symbolises useful reuse.'),
+      q('Advertising Slogan','“Small choices. Big planet.” What is the likely effect?',['It suggests individual actions can contribute to a larger environmental impact.','It proves that small choices are useless.','It makes the planet sound unimportant.','It avoids persuasion.','It focuses only on grammar.'],0,'The slogan links small actions to big impact.'),
+      q('Visual Persuasion','A poster uses a large image of a child looking directly at the viewer. Most likely effect?',['It creates emotional appeal and personal connection.','It hides the message.','It makes the advert scientific.','It removes responsibility from the reader.','It creates confusion only.'],0,'Direct eye contact can appeal to emotion and responsibility.'),
+      q('Advertising Layout','Purpose of bold capital letters in an advert?',['To reduce the importance of the message','To make the message invisible','To foreground key words and create emphasis','To show that spelling is incorrect','To remove the visual-verbal link'],2,'Bold capitals emphasise key words.'),
+      q('Cartoon Humour','A cartoon shows a learner using AI to write an essay, while the AI asks the learner to explain the answer. What creates humour?',['The learner is asleep.','The expected helper becomes the one asking for help.','There is no irony.','The cartoon has no message.','The AI is not mentioned.'],1,'The reversal of roles creates humour.'),
+      q('Irony','A cartoon character says, “I love studying,” while lying on the couch watching videos. What technique is used?',['Irony','Onomatopoeia','Euphemism','Apostrophe','Literal language only'],0,'The words contrast with the action.'),
+      q('Visual Exaggeration','A cartoonist exaggerates a teenager’s phone until it is bigger than the teenager. Likely message?',['Teenagers are physically small.','Phones are becoming more expensive.','Technology dominates the teenager’s life.','The cartoon is about furniture.','The teenager has no phone.'],2,'The oversized phone symbolises control or dominance.'),
+      q('Body Language','A parent smiles warmly while a child rolls his eyes. What is revealed?',['Both characters feel exactly the same.','The parent is affectionate, while the child may be irritated or dismissive.','The child is asleep.','The parent is angry.','The body language gives no information.'],1,'Contrasting body language reveals different attitudes.'),
+      q('Situational Irony','A final cartoon frame shows a character realising his own behaviour proves the criticism he was making about others. This is:',['Situational irony','Alliteration','Synonymy','Prefixation','Passive voice'],0,'The outcome ironically contradicts his criticism.')
+    ];
+
+    const quizzes = {
+      original: { title: 'Quiz 1: Paper 1 Skills', key: 'englishP1BestOriginal', data: originalQuiz },
+      prediction: { title: 'Quiz 2: Paper 1 Practice', key: 'englishP1BestPractice', data: predictionQuiz }
+    };
+    let currentQuizId = 'original';
+    let quizData = quizzes[currentQuizId].data;
+
+    const form = document.getElementById('quizForm');
+    const reviewSection = document.getElementById('reviewSection');
+    const answeredCount = document.getElementById('answeredCount');
+    const totalCount = document.getElementById('totalCount');
+    const livePercent = document.getElementById('livePercent');
+    const bestScore = document.getElementById('bestScore');
+
+    function q(topic, question, options, answer, explanation) { return { topic, question, options, answer, explanation }; }
+    function optionLetter(index) { return String.fromCharCode(65 + index); }
+
+    function switchQuiz(id) {
+      if (id === currentQuizId) return;
+      currentQuizId = id;
+      quizData = quizzes[currentQuizId].data;
+      document.getElementById('selectOriginal').classList.toggle('active', id === 'original');
+      document.getElementById('selectPrediction').classList.toggle('active', id === 'prediction');
+      document.getElementById('resultPanel').classList.remove('show');
+      document.getElementById('scoreBar').style.width = '0';
+      renderQuiz(); updateProgress(); loadBestScore(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderQuiz() {
+      form.innerHTML = ''; reviewSection.innerHTML = ''; totalCount.textContent = quizData.length;
+      quizData.forEach((item, qIndex) => {
+        const card = document.createElement('section');
+        card.className = 'question-card'; card.id = `question-${qIndex}`;
+        card.innerHTML = `
+          <div class="question-heading"><span class="question-number">${quizzes[currentQuizId].title} • Q${qIndex + 1}</span><span class="topic-tag">${item.topic}</span></div>
+          <div class="question-text">${escapeHtml(item.question)}</div>
+          <div class="options">${item.options.map((option, oIndex) => `
+            <label class="option"><input type="radio" name="q${qIndex}" value="${oIndex}" onchange="updateProgress()"><span><strong>${optionLetter(oIndex)}.</strong> ${escapeHtml(option)}</span></label>
+          `).join('')}</div>`;
+        form.appendChild(card);
+        const review = document.createElement('section'); review.className = 'review-card'; review.id = `review-${qIndex}`; reviewSection.appendChild(review);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+    }
+
+    function updateProgress() {
+      const answered = quizData.filter((_, index) => document.querySelector(`input[name="q${index}"]:checked`)).length;
+      answeredCount.textContent = answered; livePercent.textContent = `${Math.round((answered / quizData.length) * 100)}%`;
+    }
+
+    function submitQuiz() {
+      let score = 0; let topicMistakes = {};
+      quizData.forEach((item, index) => {
+        const selected = document.querySelector(`input[name="q${index}"]:checked`);
+        const review = document.getElementById(`review-${index}`);
+        const selectedValue = selected ? Number(selected.value) : null;
+        const isCorrect = selectedValue === item.answer;
+        if (isCorrect) score++; else topicMistakes[item.topic] = (topicMistakes[item.topic] || 0) + 1;
+        review.className = `review-card show ${isCorrect ? 'correct-box' : 'wrong-box'}`;
+        review.innerHTML = `<strong>Question ${index + 1}: ${isCorrect ? 'Correct' : 'Incorrect'}</strong><br>
+          <span>Your answer: ${selected ? optionLetter(selectedValue) + '. ' + escapeHtml(item.options[selectedValue]) : 'Not answered'}</span><br>
+          <span>Correct answer: ${optionLetter(item.answer)}. ${escapeHtml(item.options[item.answer])}</span>
+          <div class="feedback"><strong>Why:</strong> ${escapeHtml(item.explanation)}</div>`;
+      });
+      const percent = Math.round((score / quizData.length) * 100);
+      document.getElementById('resultPanel').classList.add('show');
+      document.getElementById('resultTitle').textContent = `${quizzes[currentQuizId].title} Result`;
+      document.getElementById('scoreDisplay').textContent = `${score}/${quizData.length} (${percent}%)`;
+      document.getElementById('scoreBar').style.width = `${percent}%`;
+      document.getElementById('scoreMessage').textContent = getMessage(percent);
+      const weakestTopics = Object.entries(topicMistakes).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([topic,count]) => `${topic} (${count})`);
+      document.getElementById('topicAdvice').innerHTML = weakestTopics.length ? `<strong>Revise first:</strong> ${weakestTopics.join(', ')}` : 'Perfect score. No weak topics detected.';
+      const key = quizzes[currentQuizId].key; const previousBest = Number(localStorage.getItem(key) || 0);
+      if (score > previousBest) localStorage.setItem(key, score);
+      loadBestScore(); document.getElementById('resultPanel').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function getMessage(percent) {
+      if (percent >= 80) return 'Excellent. You are handling higher-order Paper 1 language skills strongly.';
+      if (percent >= 60) return 'Good foundation. Revise the topics shown in your mistakes below.';
+      if (percent >= 40) return 'Developing. Focus on explaining effect, not only identifying techniques.';
+      return 'Needs urgent revision. Start with diction, tone, punctuation and visual-verbal links.';
+    }
+
+    function showUnanswered() {
+      const unanswered = [];
+      quizData.forEach((_, index) => { if (!document.querySelector(`input[name="q${index}"]:checked`)) unanswered.push(index + 1); });
+      if (unanswered.length === 0) alert('All questions have been answered.');
+      else { alert(`Unanswered questions: ${unanswered.join(', ')}`); document.getElementById(`question-${unanswered[0]-1}`).scrollIntoView({ behavior:'smooth', block:'center' }); }
+    }
+    function toggleReview() { document.querySelectorAll('.review-card').forEach(card => card.classList.toggle('show')); }
+    function resetQuiz() {
+      if (!confirm('Reset all answers and results for the current quiz?')) return;
+      form.reset(); document.getElementById('resultPanel').classList.remove('show'); document.getElementById('scoreBar').style.width = '0';
+      document.querySelectorAll('.review-card').forEach(card => { card.className = 'review-card'; card.innerHTML = ''; });
+      updateProgress(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function loadBestScore() {
+      const best = localStorage.getItem(quizzes[currentQuizId].key);
+      bestScore.textContent = best ? `${best}/${quizData.length}` : '—';
+    }
+
+    renderQuiz(); updateProgress(); loadBestScore();
+  </script>
+</body>
+</html>
